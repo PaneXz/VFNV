@@ -1206,7 +1206,7 @@ class FriendNetworkVisualizer:
                 elif len(same_comm_neighbors) == len(cross_comm_neighbors):
                     hover_text += f"Evenly split between groups ({cohesion_pct:.0f}% in-group)<br>"
                 else:
-                    hover_text += f"⚠ Bridge member: Only {cohesion_pct:.0f}% in-group<br>"
+                    hover_text += f"Bridge member: Only {cohesion_pct:.0f}% in-group<br>"
                     # Find which other communities they connect to most
                     other_comms = {}
                     for neighbor in cross_comm_neighbors:
@@ -2330,6 +2330,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
