@@ -176,7 +176,7 @@ class VRChatAPIParser:
                 
                 # Check if 2FA is required
                 if 'requiresTwoFactorAuth' in data and any(data.get('requiresTwoFactorAuth', [])):
-                    print("\n🔐 Two-factor authentication required")
+                    print("\nTwo-factor authentication required")
                     code = input("Enter your 2FA code: ")
                     self.verify_2fa(code)
                     
@@ -2330,3 +2330,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
