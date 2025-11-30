@@ -3,14 +3,15 @@
 A standalone application that visualizes your VRChat friend network using VRCX database and VRChat API.
 
 <p align="center">
-    <img width="1000" src="img/VFNV_dark.png" >
+    <img width="500" src="img/VFNV_dark.png" >
+    <img width="500" src="img/VFNV_light.png" >
 </p>
 
 <p align="center">
-   <img width="300" src="img/VisDemo1.png" >
-   <img width="300" src="img/VisDemo2.png" >
-   <img width="300" src="img/VisDemo3.png" >
-   <img width="300" src="img/VisDemo4.png" >
+   <img width="400" src="img/VisDemo1.png" >
+   <img width="400" src="img/VisDemo2.png" >
+   <img width="400" src="img/VisDemo3.png" >
+   <img width="400" src="img/VisDemo4.png" >
 </p>
 
 ***Note:***
@@ -229,6 +230,7 @@ For issues or questions:
 ## License
 
 This is open source software. Feel free to modify and distribute.
+
 
 
 
