@@ -1,0 +1,15 @@
+﻿# Requirements for VRChat Network Visualizer
+
+# Core dependencies
+networkx>=2.6.3
+plotly>=5.3.0
+scipy>=1.7.0
+numpy>=1.21.0
+requests>=2.25.0
+python-louvain>=0.15
+
+# For building executable
+pyinstaller>=6.0.0
+
+# Note: tkinter and sqlite3 are included with Python standard library
+# If you get tkinter errors, you may need to install python3-tk (Linux) or reinstall Python with tk support
