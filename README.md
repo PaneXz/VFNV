@@ -2,6 +2,17 @@
 
 A standalone application that visualizes your VRChat friend network using VRCX database and VRChat API.
 
+<p align="center">
+    <img width="1000" src="img/VFNV_dark.png" >
+</p>
+
+<p align="center">
+   <img width="500" src="img/VisDemo1.png" >
+   <img width="500" src="img/VisDemo2.png" >
+   <img width="500" src="img/VisDemo3.png" >
+   <img width="500" src="img/VisDemo4.png" >
+</p>
+
 ## What's Included
 
 - `vrchat_network_gui.py` - Main GUI application with integrated login
@@ -211,3 +222,4 @@ For issues or questions:
 ## License
 
 This is open source software. Feel free to modify and distribute.
+
