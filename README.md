@@ -3,8 +3,8 @@
 A standalone application that visualizes your VRChat friend network using VRCX database and VRChat API.
 
 <p align="center">
-    <img width="500" src="img/VFNV_dark.png" >
-    <img width="500" src="img/VFNV_light.png" >
+    <img width="400" src="img/VFNV_dark.png" >
+    <img width="400" src="img/VFNV_light.png" >
 </p>
 
 <p align="center">
@@ -230,6 +230,7 @@ For issues or questions:
 ## License
 
 This is open source software. Feel free to modify and distribute.
+
 
 
 
