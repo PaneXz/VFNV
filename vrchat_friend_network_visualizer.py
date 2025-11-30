@@ -1549,7 +1549,7 @@ body.dark-mode #search-status {{
 </style>
 <button id="theme-toggle">Dark</button>
 <div id="search-container">
-    <input type="text" id="friend-search" placeholder="🔍 Search for a friend...">
+    <input type="text" id="friend-search" placeholder="Search for a friend...">
     <div id="search-results"></div>
     <div id="search-status"></div>
 </div>
@@ -2330,6 +2330,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
