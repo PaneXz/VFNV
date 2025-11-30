@@ -1547,7 +1547,7 @@ body.dark-mode #search-status {{
     color: #888;
 }}
 </style>
-<button id="theme-toggle">🌙</button>
+<button id="theme-toggle">Dark</button>
 <div id="search-container">
     <input type="text" id="friend-search" placeholder="🔍 Search for a friend...">
     <div id="search-results"></div>
@@ -1574,7 +1574,7 @@ function applyTheme() {{
         body.classList.add('dark-mode');
         html.classList.remove('light-mode');
         html.classList.add('dark-mode');
-        if (toggleBtn) toggleBtn.textContent = '☀️';
+        if (toggleBtn) toggleBtn.textContent = 'Light';
         
         // Update plotly background
         if (myPlot && myPlot.layout) {{
@@ -1588,7 +1588,7 @@ function applyTheme() {{
         body.classList.add('light-mode');
         html.classList.remove('dark-mode');
         html.classList.add('light-mode');
-        if (toggleBtn) toggleBtn.textContent = '🌙';
+        if (toggleBtn) toggleBtn.textContent = 'Dark';
         
         // Update plotly background
         if (myPlot && myPlot.layout) {{
@@ -2254,7 +2254,7 @@ def main():
     edges = {}
     
     if args.source == 'vrcx_json':
-        print("\n📂 Loading data from vrcx_mutual_friends.json...")
+        print("\nLoading data from vrcx_mutual_friends.json...")
         try:
             with open('vrcx_mutual_friends.json', 'r', encoding='utf-8') as f:
                 data = json.load(f)
@@ -2276,15 +2276,15 @@ def main():
             print(f"✓ Loaded {len(friends)} friends and {len(edges)} connections")
             
         except FileNotFoundError:
-            print("❌ vrcx_mutual_friends.json not found!")
+            print("vrcx_mutual_friends.json not found!")
             print("   Run: python analyze_vrcx_mutuals.py first")
             return
         except Exception as e:
-            print(f"❌ Error loading JSON: {e}")
+            print(f"Error loading JSON: {e}")
             return
     
     elif args.source == 'vrcx':
-        print("\n📂 Loading data from VRCX database...")
+        print("\nLoading data from VRCX database...")
         try:
             parser_obj = VRCXDataParser(args.db_path)
             friends = parser_obj.get_friends()
@@ -2292,28 +2292,28 @@ def main():
             
             # Note: VRCX doesn't directly store mutual friend connections
             # We'd need to infer them or use the API
-            print("\n⚠️  Note: VRCX doesn't store mutual friend connections.")
+            print("\nNote: VRCX doesn't store mutual friend connections.")
             print("    For full network visualization, use --source api")
             print("    Continuing with friend list only...")
             
         except FileNotFoundError as e:
-            print(f"❌ Error: {e}")
-            print("\n💡 Tip: VRCX database is usually at:")
+            print(f"Error: {e}")
+            print("\nTip: VRCX database is usually at:")
             print("    %APPDATA%\\VRCX\\VRCX.sqlite3")
             return
     
     elif args.source == 'api':
         if not args.username or not args.password:
-            print("❌ Error: --username and --password required for API source")
+            print("Error: --username and --password required for API source")
             return
         
-        print("\n🌐 Connecting to VRChat API...")
+        print("\nConnecting to VRChat API...")
         try:
             api = VRChatAPIParser(args.username, args.password)
             friends = api.get_friends()
             edges = api.get_mutual_friends(friends)
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"Error: {e}")
             return
     
     # Create visualization
@@ -2321,13 +2321,14 @@ def main():
     output_path = visualizer.create_visualization(args.output, dark_mode=args.dark_mode)
     
     if args.open and output_path:
-        print(f"\n🌐 Opening visualization in browser...")
+        print(f"\nOpening visualization in browser...")
         webbrowser.open('file://' + os.path.abspath(output_path))
     
-    print("\n✨ Done!")
+    print("\nDone!")
     print("=" * 60)
 
 
 if __name__ == '__main__':
     main()
+
 
