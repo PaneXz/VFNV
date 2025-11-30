@@ -34,7 +34,7 @@ def explore_vrcx_database():
     print("=" * 60)
     
     for (table_name,) in tables:
-        print(f"\n📋 Table: {table_name}")
+        print(f"\nTable: {table_name}")
         
         # Get table schema
         cursor.execute(f"PRAGMA table_info({table_name})")
@@ -114,3 +114,4 @@ if __name__ == '__main__':
     explore_vrcx_database()
     print("\n\nAttempting to extract friend data...")
     extract_friends_and_mutuals()
+
