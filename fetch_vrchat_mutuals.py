@@ -195,7 +195,7 @@ class VRChatMutualFetcher:
         Returns:
             Dictionary mapping friend_id to list of mutual friend IDs
         """
-        print(f"🔍 Fetching mutual connections for {len(friend_ids)} friends...")
+        print(f"Fetching mutual connections for {len(friend_ids)} friends...")
         print("   (This may take several minutes due to API rate limiting)")
         
         mutuals_data = {}
@@ -394,4 +394,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
