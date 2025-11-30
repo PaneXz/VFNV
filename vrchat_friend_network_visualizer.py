@@ -115,7 +115,7 @@ class VRChatAPIParser:
         
         # Try to load existing session first
         if self.load_session():
-            print("✓ Using saved session\n")
+            print("Using saved session\n")
         elif username and password:
             self.login(username, password)
     
@@ -124,7 +124,7 @@ class VRChatAPIParser:
         import pickle
         with open(self.session_file, 'wb') as f:
             pickle.dump(self.session.cookies, f)
-        print("✓ Session saved for future use")
+        print("Session saved for future use")
     
     def load_session(self):
         """Load session cookies from file"""
@@ -138,7 +138,7 @@ class VRChatAPIParser:
                 response = self.session.get(f"{self.base_url}/auth/user")
                 if response.status_code == 200:
                     data = response.json()
-                    print(f"✓ Restored session for {data.get('displayName', 'User')}")
+                    print(f"Restored session for {data.get('displayName', 'User')}")
                     return True
                 else:
                     os.remove(self.session_file)
@@ -184,7 +184,7 @@ class VRChatAPIParser:
                     response = self.session.get(f"{self.base_url}/auth/user")
                     data = response.json()
                 
-                print(f"✓ Logged in successfully as {data.get('displayName', 'User')}")
+                print(f"Logged in successfully as {data.get('displayName', 'User')}")
                 self.save_session()
                 
             else:
@@ -265,7 +265,7 @@ class VRChatAPIParser:
                 print("  Reached safety limit, stopping...")
                 break
         
-        print(f"✓ Total friends: {len(friends)}")
+        print(f"Total friends: {len(friends)}")
         return friends
     
     def get_my_user_id(self) -> str:
@@ -312,7 +312,7 @@ class VRChatAPIParser:
                                 edges[edge] = edges.get(edge, 0) + 1
                         
                         if len(mutual_friends) > 0:
-                            print(f"    → Found {len(mutual_friends)} mutuals")
+                            print(f"    Found {len(mutual_friends)} mutuals")
                 
                 # Rate limiting
                 import time
@@ -321,7 +321,7 @@ class VRChatAPIParser:
             except Exception as e:
                 continue
         
-        print(f"\n✓ Found {len(edges)} mutual friend connections")
+        print(f"\nFound {len(edges)} mutual friend connections")
         return edges
 
 
@@ -1202,9 +1202,9 @@ class FriendNetworkVisualizer:
                 hover_text += f"In-group connections: {len(same_comm_neighbors)} of {degree}<br>"
                 
                 if len(same_comm_neighbors) > len(cross_comm_neighbors):
-                    hover_text += f"✓ Majority of friends ({cohesion_pct:.0f}%) are in this group<br>"
+                    hover_text += f"Majority of friends ({cohesion_pct:.0f}%) are in this group<br>"
                 elif len(same_comm_neighbors) == len(cross_comm_neighbors):
-                    hover_text += f"⚖ Evenly split between groups ({cohesion_pct:.0f}% in-group)<br>"
+                    hover_text += f"Evenly split between groups ({cohesion_pct:.0f}% in-group)<br>"
                 else:
                     hover_text += f"⚠ Bridge member: Only {cohesion_pct:.0f}% in-group<br>"
                     # Find which other communities they connect to most
@@ -1216,7 +1216,7 @@ class FriendNetworkVisualizer:
                     if other_comms:
                         top_other = sorted(other_comms.items(), key=lambda x: x[1], reverse=True)[0]
                         other_color = community_colors_rgb[top_other[0] % len(community_colors_rgb)]
-                        hover_text += f"  → {top_other[1]} connections to <span style='color:{other_color};font-weight:bold;text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;'>group {top_other[0]}</span><br>"
+                        hover_text += f"  {top_other[1]} connections to <span style='color:{other_color};font-weight:bold;text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;'>group {top_other[0]}</span><br>"
                 
                 # Calculate community centrality (how centered node is among its group)
                 # Use spatial distance from community center in the visualization
@@ -2185,7 +2185,7 @@ document.addEventListener('DOMContentLoaded', function() {{
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(html_content)
         
-        print(f"✓ Visualization saved to: {output_file}")
+        print(f"Visualization saved to: {output_file}")
         
         # Statistics summary
         num_communities_detected = len(set(node_primary_community.values())) if node_primary_community else 0
@@ -2273,7 +2273,7 @@ def main():
                 user1, user2 = edge_key.split('|')
                 edges[(user1, user2)] = count
             
-            print(f"✓ Loaded {len(friends)} friends and {len(edges)} connections")
+            print(f"Loaded {len(friends)} friends and {len(edges)} connections")
             
         except FileNotFoundError:
             print("vrcx_mutual_friends.json not found!")
@@ -2288,7 +2288,7 @@ def main():
         try:
             parser_obj = VRCXDataParser(args.db_path)
             friends = parser_obj.get_friends()
-            print(f"✓ Loaded {len(friends)} friends from VRCX")
+            print(f"Loaded {len(friends)} friends from VRCX")
             
             # Note: VRCX doesn't directly store mutual friend connections
             # We'd need to infer them or use the API
@@ -2330,5 +2330,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
