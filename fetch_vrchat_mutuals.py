@@ -107,7 +107,7 @@ class VRChatMutualFetcher:
     
     def get_friends(self):
         """Fetch all friends - try API first, then fallback to VRCX database"""
-        print("📋 Fetching friends list...")
+        print("Fetching friends list...")
         friends = {}
         
         # Try API first
@@ -204,7 +204,7 @@ class VRChatMutualFetcher:
         for i, friend_id in enumerate(friend_ids, 1):
             # Check if stop was requested
             if self.stop_callback and self.stop_callback():
-                print(f"\n⚠️  Stopped by user at {i}/{total} friends")
+                print(f"\nStopped by user at {i}/{total} friends")
                 break
             
             # Call progress callback if provided
@@ -243,7 +243,7 @@ class VRChatMutualFetcher:
                         time.sleep(0.2)  # Brief delay between pages
                         
                     elif response.status_code == 429:
-                        print(f"    ⚠️  Rate limited at friend {i}/{total}, waiting 30s...")
+                        print(f"    Rate limited at friend {i}/{total}, waiting 30s...")
                         time.sleep(30)
                         continue
                     else:
@@ -256,7 +256,7 @@ class VRChatMutualFetcher:
                 time.sleep(0.5)
                 
             except Exception as e:
-                print(f"    ⚠️  Error fetching mutuals for friend {i}: {e}")
+                print(f"    Error fetching mutuals for friend {i}: {e}")
                 mutuals_data[friend_id] = []
                 continue
         
@@ -322,7 +322,7 @@ class VRChatMutualFetcher:
                         print(f"    → {mutual_count} mutuals")
                 
                 elif response.status_code == 429:
-                    print(f"    ⚠️  Rate limited, waiting 30s...")
+                    print(f"    Rate limited, waiting 30s...")
                     time.sleep(30)
                     continue
                 
@@ -330,7 +330,7 @@ class VRChatMutualFetcher:
                 time.sleep(0.5)
                 
             except Exception as e:
-                print(f"    ⚠️  Error: {e}")
+                print(f"    Error: {e}")
                 continue
         
         print(f"\n✓ Found {len(edges)} mutual friend connections")
@@ -381,16 +381,17 @@ def main():
         
         # Show top mutual friends
         if mutual_counts:
-            print("\n📊 Friends with most mutuals:")
+            print("\nFriends with most mutuals:")
             top_mutuals = sorted(mutual_counts.items(), key=lambda x: x[1], reverse=True)[:10]
             for friend_id, count in top_mutuals:
                 print(f"  • {friends[friend_id]['name']}: {count} mutual friends")
         
-        print("\n✅ Done! Now run:")
+        print("\nDone! Now run:")
         print("   python vrchat_friend_network_visualizer.py --source vrcx_json --open")
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\nError: {e}")
 
 if __name__ == '__main__':
     main()
+
