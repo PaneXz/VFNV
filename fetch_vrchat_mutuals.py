@@ -29,7 +29,7 @@ class VRChatMutualFetcher:
         """Save session cookies to file"""
         with open(self.session_file, 'wb') as f:
             pickle.dump(self.session.cookies, f)
-        print("✓ Session saved for future use\n")
+        print("Session saved for future use\n")
     
     def load_session(self):
         """Load session cookies from file"""
@@ -42,7 +42,7 @@ class VRChatMutualFetcher:
                 response = self.session.get(f"{self.base_url}/auth/user")
                 if response.status_code == 200:
                     data = response.json()
-                    print(f"✓ Restored session for {data.get('displayName', 'User')}\n")
+                    print(f"Restored session for {data.get('displayName', 'User')}\n")
                     return True
                 else:
                     os.remove(self.session_file)
@@ -181,7 +181,7 @@ class VRChatMutualFetcher:
             except Exception as e:
                 print(f"  Warning: Could not read VRCX database: {e}")
         
-        print(f"✓ Total friends: {len(friends)}\n")
+        print(f"Total friends: {len(friends)}\n")
         return friends
     
     def fetch_all_mutuals(self, friend_ids: list, progress_callback=None) -> Dict[str, list]:
@@ -260,7 +260,7 @@ class VRChatMutualFetcher:
                 mutuals_data[friend_id] = []
                 continue
         
-        print(f"✓ Completed fetching mutuals for {len(mutuals_data)} friends\n")
+        print(f"Completed fetching mutuals for {len(mutuals_data)} friends\n")
         return mutuals_data
     
     def get_mutual_friends(self, friends: Dict):
@@ -319,7 +319,7 @@ class VRChatMutualFetcher:
                             edges[edge] = edges.get(edge, 0) + 1
                     
                     if mutual_count > 0:
-                        print(f"    → {mutual_count} mutuals")
+                        print(f"    -> {mutual_count} mutuals")
                 
                 elif response.status_code == 429:
                     print(f"    Rate limited, waiting 30s...")
@@ -333,7 +333,7 @@ class VRChatMutualFetcher:
                 print(f"    Error: {e}")
                 continue
         
-        print(f"\n✓ Found {len(edges)} mutual friend connections")
+        print(f"\nFound {len(edges)} mutual friend connections")
         return edges, mutual_counts
 
 def main():
@@ -377,7 +377,7 @@ def main():
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(output, f, indent=2, ensure_ascii=False)
         
-        print(f"\n✓ Saved to: {output_file}")
+        print(f"\nSaved to: {output_file}")
         
         # Show top mutual friends
         if mutual_counts:
@@ -394,5 +394,6 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
