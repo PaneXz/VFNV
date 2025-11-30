@@ -16,7 +16,7 @@ A standalone application that visualizes your VRChat friend network using VRCX d
 ***Note:***
 *This program uses a hybrid of VRCX and the VRChat API. I'd prefer to use one or the other in a later update, but I couldn't get it to work quite yet.*
 *For the current version, I got it to work by getting the number/list of friends from VRCX first and then getting the mutuals from VRChat.*
-*The majority of this program was coded with the help of AI and was made strictly out of curiosity, not to undermine talent.*
+*The majority of this program was coded with the help of AI and was made strictly out of curiosity, not to undermine talent. Don't kill me pls :(*
 
 
 ## What's Included
@@ -228,6 +228,7 @@ For issues or questions:
 ## License
 
 This is open source software. Feel free to modify and distribute.
+
 
 
 
