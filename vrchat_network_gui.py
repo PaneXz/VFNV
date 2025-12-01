@@ -33,16 +33,18 @@ class VRChatNetworkGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("VRChat Friend Network Visualizer")
-        self.root.geometry("950x700")
-        self.root.minsize(900, 650)
+        self.root.geometry("1050x850")
+        self.root.minsize(1000, 800)
 
         self.processing = False
         self.stop_requested = False
         self.output_path = None
         self.login_required = False
         self.fetcher = None
-        self.dark_mode_gui = False
+        self.dark_mode_gui = True
         self.exe_dir = self.get_exe_dir()
+        self.vrcx_users = []  # List of available VRCX users
+        self.selected_user_hash = None  # Currently selected user hash
         
         # Statistics tracking
         self.total_friends = 0
@@ -115,6 +117,16 @@ class VRChatNetworkGUI:
         
         ttk.Button(db_section, text="Auto-Detect", command=self.detect_vrcx, width=15).pack(anchor='w')
         
+        # VRCX User Selection
+        ttk.Label(db_section, text="VRCX Account:").pack(anchor='w', pady=(10, 5))
+        self.user_select_var = tk.StringVar(value="Detect database first")
+        self.user_select_dropdown = ttk.Combobox(db_section, textvariable=self.user_select_var, state='readonly')
+        self.user_select_dropdown.pack(fill='x', pady=(0, 5))
+        self.user_select_dropdown.bind('<<ComboboxSelected>>', self.on_user_selected)
+        
+        ttk.Label(db_section, text="Select which VRCX account to use if multiple logins exist",
+                 font=('Segoe UI', 7), foreground='#888').pack(anchor='w')
+        
         # VRChat API Login Section
         self.login_section = ttk.LabelFrame(left_frame, text="VRChat API Login (Required for Mutual Connections)", padding=10)
         self.login_section.pack(fill='x', pady=(0, 10))
@@ -153,8 +165,14 @@ class VRChatNetworkGUI:
         options_section = ttk.LabelFrame(left_frame, text="Options", padding=10)
         options_section.pack(fill='x')
         
-        self.dark_mode_var = tk.BooleanVar(value=False)
+        self.dark_mode_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(options_section, text="Dark Mode (Visualization)", variable=self.dark_mode_var).pack(anchor='w', pady=2)
+        
+        self.heatmap_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(options_section, text="Show Background Heatmap", variable=self.heatmap_var).pack(anchor='w', pady=2)
+        
+        self.show_edges_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(options_section, text="Show Unselected Connections", variable=self.show_edges_var).pack(anchor='w', pady=2)
         
         self.auto_open_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(options_section, text="Auto-open in browser", variable=self.auto_open_var).pack(anchor='w', pady=2)
@@ -222,7 +240,7 @@ class VRChatNetworkGUI:
         top_friends_frame = ttk.Frame(stats_grid)
         top_friends_frame.grid(row=6, column=1, sticky='e', pady=2)
         
-        self.top_friends_text = tk.Text(top_friends_frame, height=5, width=25, 
+        self.top_friends_text = tk.Text(top_friends_frame, height=4, width=25, 
                                         font=('Segoe UI', 8), wrap=tk.NONE,
                                         relief='flat', borderwidth=0)
         self.top_friends_text.pack()
@@ -233,9 +251,9 @@ class VRChatNetworkGUI:
         
         # Log Section
         log_section = ttk.LabelFrame(right_frame, text="Activity Log", padding=10)
-        log_section.pack(fill='both', expand=True)
+        log_section.pack(fill='both', expand=True, pady=(0, 5))
         
-        self.log_text = scrolledtext.ScrolledText(log_section, height=10, width=50,
+        self.log_text = scrolledtext.ScrolledText(log_section, height=8, width=50,
                                                   font=('Consolas', 9), wrap=tk.WORD)
         self.log_text.pack(fill='both', expand=True)
         
@@ -281,7 +299,7 @@ class VRChatNetworkGUI:
         footer_frame = ttk.Frame(main_container)
         footer_frame.pack(fill='x', pady=(10, 0))
         ttk.Label(footer_frame, 
-                 text="All data stays local • No tracking • Session cookie only • Open source",
+                 text="All data stays local - No tracking - Session cookie only - Open source",
                  font=('Segoe UI', 7), foreground='#888').pack()
 
     def detect_vrcx(self):
@@ -294,6 +312,7 @@ class VRChatNetworkGUI:
             size_mb = os.path.getsize(db_path) / 1024 / 1024
             self.log(f"[Database] Found VRCX database ({size_mb:.2f} MB)")
             self.log(f"[Database] Location: {db_path}")
+            self.load_vrcx_users()
         else:
             self.log(f"[Database] Not found at default location")
             self.log(f"[Database] Please use Browse to select manually")
@@ -308,7 +327,47 @@ class VRChatNetworkGUI:
             self.db_path_var.set(filename)
             size_mb = os.path.getsize(filename) / 1024 / 1024
             self.log(f"[Database] Selected: {filename} ({size_mb:.2f} MB)")
+            self.load_vrcx_users()
 
+    def load_vrcx_users(self):
+        """Load available VRCX users from database"""
+        from extract_vrcx_mutuals import get_vrcx_users
+        
+        try:
+            self.vrcx_users = get_vrcx_users()
+            
+            if not self.vrcx_users:
+                self.user_select_var.set("No VRCX users found")
+                self.user_select_dropdown['values'] = []
+                self.log("[Database] No VRCX user accounts found in database")
+            elif len(self.vrcx_users) == 1:
+                user = self.vrcx_users[0]
+                self.selected_user_hash = user['user_hash']
+                self.user_select_var.set(user['display'])
+                self.user_select_dropdown['values'] = [user['display']]
+                self.log(f"[Database] Found 1 VRCX account: {user['display']}")
+            else:
+                displays = [user['display'] for user in self.vrcx_users]
+                self.user_select_dropdown['values'] = displays
+                self.user_select_var.set(displays[0])
+                self.selected_user_hash = self.vrcx_users[0]['user_hash']
+                self.log(f"[Database] Found {len(self.vrcx_users)} VRCX accounts - select one from dropdown")
+                for user in self.vrcx_users:
+                    self.log(f"[Database]   - {user['display']}")
+        except Exception as e:
+            self.log(f"[Database] Error loading VRCX users: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    def on_user_selected(self, event=None):
+        """Handle user selection from dropdown"""
+        selected_display = self.user_select_var.get()
+        for user in self.vrcx_users:
+            if user['display'] == selected_display:
+                self.selected_user_hash = user['user_hash']
+                self.log(f"[Database] Selected account: {user['display']}")
+                break
+    
     def log(self, message):
         """Add message to log"""
         timestamp = time.strftime("%H:%M:%S")
@@ -328,9 +387,9 @@ class VRChatNetworkGUI:
         response = messagebox.askyesno(
             "Clear User Data",
             "This will delete:\n\n"
-            "• Saved VRChat login session\n"
-            "• Cached friend list (vrcx_mutual_friends.json)\n"
-            "• Generated network visualization\n\n"
+            "- Saved VRChat login session\n"
+            "- Cached friend list (vrcx_mutual_friends.json)\n"
+            "- Generated network visualization\n\n"
             "Do this before sharing the application to remove personal data.\n\n"
             "Continue?",
             icon='warning'
@@ -384,7 +443,7 @@ class VRChatNetworkGUI:
         # Show summary
         summary = f"Removed {len(files_removed)} file(s)"
         if files_removed:
-            summary += f":\n" + "\n".join(f"  • {f}" for f in files_removed)
+            summary += f":\n" + "\n".join(f"  - {f}" for f in files_removed)
         if files_not_found:
             summary += f"\n\nNot found ({len(files_not_found)}): " + ", ".join(files_not_found)
         
@@ -568,6 +627,12 @@ class VRChatNetworkGUI:
             self.log("[Error] Please select a valid VRCX database file")
             self.update_status("Error: No database selected")
             return
+        
+        # Check if a user has been selected
+        if not self.selected_user_hash:
+            self.log("[Error] Please select a VRCX account from the dropdown")
+            self.update_status("Error: No VRCX account selected")
+            return
 
         # Disable buttons and reset progress
         self.processing = True
@@ -611,7 +676,7 @@ class VRChatNetworkGUI:
                 self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
                 return
             
-            friends_data = extract_friends_and_mutuals()
+            friends_data = extract_friends_and_mutuals(self.selected_user_hash)
             
             if not friends_data:
                 raise Exception("No friends found in VRCX database")
@@ -800,8 +865,10 @@ class VRChatNetworkGUI:
             # Save visualization in the exe directory
             output_file = os.path.join(self.exe_dir, 'vrchat_friend_network.html')
             dark_mode = self.dark_mode_var.get()
+            show_heatmap = self.heatmap_var.get()
+            show_edges = self.show_edges_var.get()
             
-            visualizer.create_visualization(output_file, dark_mode)
+            visualizer.create_visualization(output_file, dark_mode, show_heatmap, show_edges)
             
             # Get community count from visualizer after generation
             try:
