@@ -64,18 +64,19 @@ Or double-click `run_gui.bat` for quick launch
 1. **Launch the app** - Double-click the .exe or run `python vrchat_network_gui.py`
 2. **Browse for VRCX database** - Click "Browse" or use "Auto-Detect" to find it automatically
 3. **Select VRCX Account** - If you have multiple VRChat accounts in VRCX, choose which one to use
-4. **Enter VRChat credentials** (if no saved session exists)
+4. **Enter VRChat credentials** (if no saved session exists and not using cached data)
    - Username and password
    - 2FA code if prompted
 5. **Configure options:**
    - Dark Mode (Visualization) - Toggle between light/dark theme for the HTML output
    - Show Background Heatmap - Display community heatmap backgrounds in visualization
    - Show Unselected Connections - Show connection lines when nodes aren't selected
+   - Use Cached Data (Skip API) - Regenerate visualization from existing data without fetching from API
    - Auto-open in browser - Opens visualization automatically when complete (enabled by default)
 6. **Click "Generate"** - The app will:
-   - Extract your friends list from VRCX database
-   - Log into VRChat API (only if no saved session)
-   - Fetch mutual connections for all friends
+   - Extract your friends list from VRCX database (or load from cache)
+   - Log into VRChat API (only if no saved session and not using cached data)
+   - Fetch mutual connections for all friends (or skip if using cached data)
    - Build network graph and detect communities
    - Generate interactive HTML visualization
 7. **View your network** - Opens automatically in your default browser
@@ -83,8 +84,9 @@ Or double-click `run_gui.bat` for quick launch
 **Note:** 
 - First run requires VRChat login and may take 5-10 minutes for large friend lists (500+)
 - Login session is saved for future use (no need to log in every time)
+- After first generation, enable "Use Cached Data" to quickly regenerate with different visual settings
 - Click "Stop" button to cancel generation mid-process
-- Use "Clear Data" to remove saved session and start fresh
+- Use "Clear Data" to remove saved session and cached data
 
 ## Features
 
@@ -98,7 +100,7 @@ Or double-click `run_gui.bat` for quick launch
 - Light/Dark theme toggle for GUI
 - Network statistics display (friends, edges, communities, density)
 - Top connected friends list
-- Visualization options: heatmap toggle, connection lines toggle
+- Visualization options: heatmap toggle, connection lines toggle, cached data mode
 
 **Visualization:**
 - Interactive network graph with Louvain community detection
@@ -119,7 +121,7 @@ The application combines two data sources:
 1. **VRCX Database** - Extracts your complete friends list locally
 2. **VRChat API** - Fetches mutual friend connections for each friend
 
-**Process:**
+**Process (Normal Mode):**
 1. Reads friend list from VRCX SQLite database
 2. Logs into VRChat API with your credentials
 3. For each friend, fetches their mutual connections
@@ -127,12 +129,20 @@ The application combines two data sources:
 5. Detects friend communities using Louvain algorithm
 6. Generates interactive HTML visualization
 
+**Process (Cached Data Mode):**
+1. Loads friend and mutual connection data from cached JSON
+2. Builds network graph from cached data
+3. Detects communities and generates visualization
+4. Much faster - no API calls needed!
+
 **Generated Files (stored in "VFNV Data" folder next to exe):**
 - `vrchat_session.pkl` - Saved login session (reused automatically)
-- `vrcx_mutual_friends.json` - Cached friend and mutual data
+- `vrcx_mutual_friends.json` - Cached friend and mutual data (can be reused for fast regeneration)
 - `vrchat_friend_network.html` - Interactive visualization
 
 Files are organized in a "VFNV Data" subfolder. The HTML visualization can be shared with others.
+
+**Tip:** After generating once, enable "Use Cached Data" to quickly regenerate with different visual settings (theme, heatmap, edges) without waiting for API calls.
 
 ## Distribution
 
