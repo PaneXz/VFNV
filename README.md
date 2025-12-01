@@ -62,20 +62,23 @@ Or double-click `run_gui.bat` for quick launch
 ## Using the Application
 
 1. **Launch the app** - Double-click the .exe or run `python vrchat_network_gui.py`
-2. **Browse for VRCX database** - Click "Browse" or it will auto-detect at default location
-3. **Enter VRChat credentials** (if no saved session exists)
+2. **Browse for VRCX database** - Click "Browse" or use "Auto-Detect" to find it automatically
+3. **Select VRCX Account** - If you have multiple VRChat accounts in VRCX, choose which one to use
+4. **Enter VRChat credentials** (if no saved session exists)
    - Username and password
    - 2FA code if prompted
-4. **Configure options:**
+5. **Configure options:**
    - Dark Mode (Visualization) - Toggle between light/dark theme for the HTML output
+   - Show Background Heatmap - Display community heatmap backgrounds in visualization
+   - Show Unselected Connections - Show connection lines when nodes aren't selected
    - Auto-open in browser - Opens visualization automatically when complete (enabled by default)
-5. **Click "Generate"** - The app will:
+6. **Click "Generate"** - The app will:
    - Extract your friends list from VRCX database
    - Log into VRChat API (only if no saved session)
    - Fetch mutual connections for all friends
    - Build network graph and detect communities
    - Generate interactive HTML visualization
-6. **View your network** - Opens automatically in your default browser
+7. **View your network** - Opens automatically in your default browser
 
 **Note:** 
 - First run requires VRChat login and may take 5-10 minutes for large friend lists (500+)
@@ -87,6 +90,7 @@ Or double-click `run_gui.bat` for quick launch
 
 **GUI:**
 - Auto-detect VRCX database location
+- Multiple VRCX account support with user selection dropdown
 - Integrated VRChat login with 2FA support
 - Real-time progress tracking with percentage
 - Stop button to cancel mid-generation
@@ -94,13 +98,16 @@ Or double-click `run_gui.bat` for quick launch
 - Light/Dark theme toggle for GUI
 - Network statistics display (friends, edges, communities, density)
 - Top connected friends list
+- Visualization options: heatmap toggle, connection lines toggle
 
 **Visualization:**
 - Interactive network graph with Louvain community detection
 - Search by friend name or user ID (e.g., "usr_xxxxx")
-- Theme toggle (light/dark modes)
+- Theme toggle button (light/dark modes)
+- Heatmap toggle button (show/hide community backgrounds)
+- Connection lines toggle button (show/hide unselected edges)
 - Click nodes to highlight connections
-- Ctrl+Click for multi-select
+- Ctrl+Click for multi-select to find common friends
 - Hover tooltips with friend details and mutual connections
 - Color-coded communities with spatial centrality layout
 - Auto-layout with force-directed positioning
@@ -161,9 +168,15 @@ Files are organized in a "VFNV Data" subfolder. The HTML visualization can be sh
 ## Troubleshooting
 
 **"No database selected"**
-- Click "Browse" to manually select your VRCX database
+- Click "Auto-Detect" to automatically find your VRCX database
+- Or click "Browse" to manually select your VRCX database
 - Default location: `%APPDATA%\VRCX\VRCX.sqlite3`
 - Make sure VRCX is installed and has been run at least once
+
+**"No VRCX account selected"**
+- Select a VRCX account from the dropdown menu
+- The app supports multiple VRChat accounts logged into VRCX
+- Choose which account's friend network you want to visualize
 
 **"Login required"**
 - Enter your VRChat username and password
@@ -200,14 +213,15 @@ Files are organized in a "VFNV Data" subfolder. The HTML visualization can be sh
 - **Dependencies**: ~50MB when installed
 - **Built executable**: ~80-100MB (includes Python runtime and all libraries)
 
-## Privacy & Security
+**Privacy & Security**
 
 - **Hybrid data sources** - Uses local VRCX database + VRChat API
 - **No data collection** - Your credentials and friend data stay on your machine
 - **Session storage** - Only saves the session cookie locally (not your password)
 - **Open source** - All code is visible and auditable
 - **Local processing** - Network graph is generated entirely on your computer
-- **Generated files** - All outputs saved next to the executable for easy management
+- **Generated files** - All outputs saved in "VFNV Data" folder for easy management
+- **No tracking** - No analytics, telemetry, or external connections except VRChat API
 
 ## Advanced
 
@@ -230,11 +244,3 @@ For issues or questions:
 ## License
 
 This is open source software. Feel free to modify and distribute.
-
-
-
-
-
-
-
-
