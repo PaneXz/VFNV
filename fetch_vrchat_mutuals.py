@@ -256,7 +256,7 @@ class VRChatMutualFetcher:
                 time.sleep(0.5)
                 
             except Exception as e:
-                print(f"    Error fetching mutuals for friend {i}: {e}")
+                print(f" Error fetching mutuals for friend {i}: {e}")
                 mutuals_data[friend_id] = []
                 continue
         
@@ -268,7 +268,7 @@ class VRChatMutualFetcher:
         Fetch mutual friends using VRChat's /users/{userId}/mutuals/friends endpoint
         This is the same endpoint VRCX uses
         """
-        print("🔍 Fetching mutual friends (this will take a while)...")
+        print("Fetching mutual friends (this will take a while)...")
         print(f"Processing {len(friends)} friends...\n")
         
         edges = {}
@@ -319,10 +319,10 @@ class VRChatMutualFetcher:
                             edges[edge] = edges.get(edge, 0) + 1
                     
                     if mutual_count > 0:
-                        print(f"    -> {mutual_count} mutuals")
+                        print(f"-> {mutual_count} mutuals")
                 
                 elif response.status_code == 429:
-                    print(f"    Rate limited, waiting 30s...")
+                    print(f"Rate limited, waiting 30s...")
                     time.sleep(30)
                     continue
                 
@@ -330,7 +330,7 @@ class VRChatMutualFetcher:
                 time.sleep(0.5)
                 
             except Exception as e:
-                print(f"    Error: {e}")
+                print(f" Error: {e}")
                 continue
         
         print(f"\nFound {len(edges)} mutual friend connections")
@@ -394,6 +394,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
