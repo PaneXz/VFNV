@@ -27,10 +27,10 @@ def build_exe():
     
     try:
         subprocess.run(cmd, check=True)
-        print("\n✓ Build complete!")
+        print("\nBuild complete!")
         print("Executable location: dist/VRChat_Network_Visualizer.exe")
     except subprocess.CalledProcessError as e:
-        print(f"\n✗ Build failed: {e}")
+        print(f"\nBuild failed: {e}")
         print("\nMake sure PyInstaller is installed:")
         print("  pip install pyinstaller")
         sys.exit(1)
