@@ -174,6 +174,9 @@ class VRChatNetworkGUI:
         self.show_edges_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(options_section, text="Show Unselected Connections", variable=self.show_edges_var).pack(anchor='w', pady=2)
         
+        self.use_cached_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(options_section, text="Use Cached Data (Skip API)", variable=self.use_cached_var).pack(anchor='w', pady=2)
+        
         self.auto_open_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(options_section, text="Auto-open in browser", variable=self.auto_open_var).pack(anchor='w', pady=2)
         
@@ -622,17 +625,31 @@ class VRChatNetworkGUI:
         if self.processing:
             return
 
-        db_path = self.db_path_var.get()
-        if db_path == "Not selected" or not os.path.exists(db_path):
-            self.log("[Error] Please select a valid VRCX database file")
-            self.update_status("Error: No database selected")
-            return
+        # Check if using cached data
+        use_cached = self.use_cached_var.get()
+        json_file = os.path.join(self.exe_dir, 'vrcx_mutual_friends.json')
         
-        # Check if a user has been selected
-        if not self.selected_user_hash:
-            self.log("[Error] Please select a VRCX account from the dropdown")
-            self.update_status("Error: No VRCX account selected")
-            return
+        if use_cached:
+            # Check if cached JSON exists
+            if not os.path.exists(json_file):
+                self.log("[Error] Cached data not found. Please generate data first without 'Use Cached Data' option.")
+                self.update_status("Error: No cached data")
+                return
+            self.log("[Mode] Using cached JSON data - skipping VRCX/API")
+            db_path = None  # Not needed in cached mode
+        else:
+            # Normal mode - need database and user selection
+            db_path = self.db_path_var.get()
+            if db_path == "Not selected" or not os.path.exists(db_path):
+                self.log("[Error] Please select a valid VRCX database file")
+                self.update_status("Error: No database selected")
+                return
+            
+            # Check if a user has been selected
+            if not self.selected_user_hash:
+                self.log("[Error] Please select a VRCX account from the dropdown")
+                self.update_status("Error: No VRCX account selected")
+                return
 
         # Disable buttons and reset progress
         self.processing = True
@@ -662,142 +679,187 @@ class VRChatNetworkGUI:
             self.update_status("Starting...", "Initializing", 0)
             self.log("[Process] Starting network generation")
             
-            # Step 1: Extract friends from VRCX
-            self.update_status("Extracting friend data...", "Step 1 of 4", 5)
-            self.log("[Step 1/4] Extracting friends from VRCX database")
+            # Check if using cached data
+            use_cached = self.use_cached_var.get()
+            json_file = os.path.join(self.exe_dir, 'vrcx_mutual_friends.json')
             
-            if self.stop_requested:
-                self.log("[Process] Stopped by user")
-                self.update_status("Stopped by user", "Cancelled", 0)
-                # Reset state without calling processing_complete since we didn't complete
-                self.processing = False
-                self.stop_requested = False
-                self.root.after(0, lambda: self.generate_btn.config(state='normal'))
-                self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
-                return
-            
-            friends_data = extract_friends_and_mutuals(self.selected_user_hash)
-            
-            if not friends_data:
-                raise Exception("No friends found in VRCX database")
-
-            friend_count = len(friends_data)
-            self.log(f"[Step 1/4] Found {friend_count} friends")
-            self.update_statistics(friends=friend_count)
-            self.update_status("Friend data extracted", "Step 1 of 4 Complete", 20)
-
-            if self.stop_requested:
-                self.log("[Process] Stopped by user")
-                self.update_status("Stopped by user", "Cancelled", 0)
-                # Reset state without calling processing_complete since we didn't complete
-                self.processing = False
-                self.stop_requested = False
-                self.root.after(0, lambda: self.generate_btn.config(state='normal'))
-                self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
-                return
-
-            # Step 2: Fetch mutual connections from API
-            self.update_status("Checking VRChat API access...", "Step 2 of 4", 25)
-            self.log("[Step 2/4] Preparing to fetch mutual connections")
-            
-            from fetch_vrchat_mutuals import VRChatMutualFetcher
-            # Use exe directory to store session and cache files
-            self.fetcher = VRChatMutualFetcher(base_dir=self.exe_dir, stop_callback=lambda: self.stop_requested)
-            
-            api_mutuals = {}
-            
-            # Check for saved session
-            if not self.fetcher.load_session():
-                self.log("[Step 2/4] No saved session found")
+            if use_cached and os.path.exists(json_file):
+                # Load from cached JSON
+                self.update_status("Loading cached data...", "Step 1 of 2", 10)
+                self.log("[Step 1/2] Loading friend data from cached JSON")
                 
-                # Check if credentials are provided
-                username = self.username_entry.get().strip()
-                password = self.password_entry.get().strip()
+                import json
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    json_data = json.load(f)
                 
-                if not username or not password:
-                    # No credentials, show login section and stop
-                    self.log("[Step 2/4] Please enter login credentials above and click Generate again")
-                    self.root.after(0, self.show_login_section)
-                    self.update_status("Login required", "Enter credentials and retry")
-                    raise Exception("Login required")
+                # Build friends_data structure from JSON
+                friends_data = {}
+                for friend_id, friend_info in json_data.get('friends', {}).items():
+                    friends_data[friend_id] = {
+                        'name': friend_info.get('name', friend_id),
+                        'id': friend_id,
+                        'mutuals': []
+                    }
                 
-                # Attempt login with provided credentials
-                self.log("[Step 2/4] Attempting login with provided credentials")
-                if self.attempt_login():
-                    self.log("[Step 2/4] Login successful")
-                    # Fetch mutuals after successful login
+                # Rebuild mutuals from edges
+                for edge_key in json_data.get('edges', {}).keys():
+                    parts = edge_key.split('|')
+                    if len(parts) == 2:
+                        friend1, friend2 = parts
+                        if friend1 in friends_data and friend2 in friends_data:
+                            friends_data[friend1]['mutuals'].append(friend2)
+                            friends_data[friend2]['mutuals'].append(friend1)
+                
+                friend_count = len(friends_data)
+                self.log(f"[Step 1/2] Loaded {friend_count} friends from cache")
+                self.update_statistics(friends=friend_count)
+                self.update_status("Cached data loaded", "Step 1 of 2 Complete", 50)
+                
+                # Skip to building graph
+                self.log("[Step 2/2] Skipped API fetch - using cached data")
+            else:
+                # Normal mode - extract from VRCX and API
+                # Step 1: Extract friends from VRCX
+                self.update_status("Extracting friend data...", "Step 1 of 4", 5)
+                self.log("[Step 1/4] Extracting friends from VRCX database")
+                
+                if self.stop_requested:
+                    self.log("[Process] Stopped by user")
+                    self.update_status("Stopped by user", "Cancelled", 0)
+                    # Reset state without calling processing_complete since we didn't complete
+                    self.processing = False
+                    self.stop_requested = False
+                    self.root.after(0, lambda: self.generate_btn.config(state='normal'))
+                    self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
+                    return
+                
+                friends_data = extract_friends_and_mutuals(self.selected_user_hash)
+                
+                if not friends_data:
+                    raise Exception("No friends found in VRCX database")
+
+                friend_count = len(friends_data)
+                self.log(f"[Step 1/4] Found {friend_count} friends")
+                self.update_statistics(friends=friend_count)
+                self.update_status("Friend data extracted", "Step 1 of 4 Complete", 20)
+
+                if self.stop_requested:
+                    self.log("[Process] Stopped by user")
+                    self.update_status("Stopped by user", "Cancelled", 0)
+                    # Reset state without calling processing_complete since we didn't complete
+                    self.processing = False
+                    self.stop_requested = False
+                    self.root.after(0, lambda: self.generate_btn.config(state='normal'))
+                    self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
+                    return
+
+                # Step 2: Fetch mutual connections from API
+                self.update_status("Checking VRChat API access...", "Step 2 of 4", 25)
+                self.log("[Step 2/4] Preparing to fetch mutual connections")
+                
+                from fetch_vrchat_mutuals import VRChatMutualFetcher
+                # Use exe directory to store session and cache files
+                self.fetcher = VRChatMutualFetcher(base_dir=self.exe_dir, stop_callback=lambda: self.stop_requested)
+                
+                api_mutuals = {}
+                
+                # Check for saved session
+                if not self.fetcher.load_session():
+                    self.log("[Step 2/4] No saved session found")
+                    
+                    # Check if credentials are provided
+                    username = self.username_entry.get().strip()
+                    password = self.password_entry.get().strip()
+                    
+                    if not username or not password:
+                        # No credentials, show login section and stop
+                        self.log("[Step 2/4] Please enter login credentials above and click Generate again")
+                        self.root.after(0, self.show_login_section)
+                        self.update_status("Login required", "Enter credentials and retry")
+                        raise Exception("Login required")
+                    
+                    # Attempt login with provided credentials
+                    self.log("[Step 2/4] Attempting login with provided credentials")
+                    if self.attempt_login():
+                        self.log("[Step 2/4] Login successful")
+                        # Fetch mutuals after successful login
+                        self.update_status("Fetching mutual connections...", "Step 2 of 4", 30)
+                        friend_ids = list(friends_data.keys())
+                        self.log(f"[Step 2/4] Fetching mutuals for {len(friend_ids)} friends")
+                        self.log("[Step 2/4] This may take several minutes...")
+                        
+                        api_mutuals = self.fetcher.fetch_all_mutuals(friend_ids, progress_callback=self.fetch_progress_callback)
+                    else:
+                        self.log("[Step 2/4] Login failed")
+                        self.update_status("Login failed", "Check credentials")
+                        raise Exception("Login failed")
+                else:
+                    # Session restored, fetch mutuals
                     self.update_status("Fetching mutual connections...", "Step 2 of 4", 30)
+                    self.login_status_var.set("Using saved session")
                     friend_ids = list(friends_data.keys())
+                    self.log(f"[Step 2/4] Using saved session")
                     self.log(f"[Step 2/4] Fetching mutuals for {len(friend_ids)} friends")
                     self.log("[Step 2/4] This may take several minutes...")
                     
                     api_mutuals = self.fetcher.fetch_all_mutuals(friend_ids, progress_callback=self.fetch_progress_callback)
-                else:
-                    self.log("[Step 2/4] Login failed")
-                    self.update_status("Login failed", "Check credentials")
-                    raise Exception("Login failed")
-            else:
-                # Session restored, fetch mutuals
-                self.update_status("Fetching mutual connections...", "Step 2 of 4", 30)
-                self.login_status_var.set("Using saved session")
-                friend_ids = list(friends_data.keys())
-                self.log(f"[Step 2/4] Using saved session")
-                self.log(f"[Step 2/4] Fetching mutuals for {len(friend_ids)} friends")
-                self.log("[Step 2/4] This may take several minutes...")
                 
-                api_mutuals = self.fetcher.fetch_all_mutuals(friend_ids, progress_callback=self.fetch_progress_callback)
-            
-            # Check if we have any mutual data
-            if not api_mutuals:
-                self.log("[Step 2/4] No mutual data retrieved")
-                self.update_status("No mutual data", "Check login")
-                raise Exception("No mutual data retrieved")
-            
-            # Merge mutual data
-            mutual_count = 0
-            for friend_id, mutuals_list in api_mutuals.items():
-                if friend_id in friends_data:
-                    friends_data[friend_id]['mutuals'] = mutuals_list
-                    mutual_count += len(mutuals_list)
-            
-            # Save JSON cache of friend data
-            import json
-            json_output = {
-                'friends': {uid: {'id': uid, 'name': data.get('name', uid)} for uid, data in friends_data.items()},
-                'edges': {},
-                'mutual_counts': {}
-            }
-            # Build edges from mutuals
-            for friend_id, friend_info in friends_data.items():
-                mutuals = friend_info.get('mutuals', [])
-                json_output['mutual_counts'][friend_id] = len(mutuals)
-                for mutual_id in mutuals:
-                    if mutual_id in friends_data:
-                        edge_key = f"{min(friend_id, mutual_id)}|{max(friend_id, mutual_id)}"
-                        json_output['edges'][edge_key] = 1
-            
-            json_file = os.path.join(self.exe_dir, 'vrcx_mutual_friends.json')
-            with open(json_file, 'w', encoding='utf-8') as f:
-                json.dump(json_output, f, indent=2, ensure_ascii=False)
-            self.log(f"[Step 2/4] Saved friend cache to: {json_file}")
-            
-            self.log(f"[Step 2/4] Collected {mutual_count} mutual connection entries")
-            # Note: actual edges will be ~half this since each connection is counted twice
-            self.update_status("Mutual connections fetched", "Step 2 of 4 Complete", 55)
+                # Check if we have any mutual data
+                if not api_mutuals:
+                    self.log("[Step 2/4] No mutual data retrieved")
+                    self.update_status("No mutual data", "Check login")
+                    raise Exception("No mutual data retrieved")
+                
+                # Merge mutual data
+                mutual_count = 0
+                for friend_id, mutuals_list in api_mutuals.items():
+                    if friend_id in friends_data:
+                        friends_data[friend_id]['mutuals'] = mutuals_list
+                        mutual_count += len(mutuals_list)
+                
+                # Save JSON cache of friend data
+                import json
+                json_output = {
+                    'friends': {uid: {'id': uid, 'name': data.get('name', uid)} for uid, data in friends_data.items()},
+                    'edges': {},
+                    'mutual_counts': {}
+                }
+                # Build edges from mutuals
+                for friend_id, friend_info in friends_data.items():
+                    mutuals = friend_info.get('mutuals', [])
+                    json_output['mutual_counts'][friend_id] = len(mutuals)
+                    for mutual_id in mutuals:
+                        if mutual_id in friends_data:
+                            edge_key = f"{min(friend_id, mutual_id)}|{max(friend_id, mutual_id)}"
+                            json_output['edges'][edge_key] = 1
+                
+                json_file = os.path.join(self.exe_dir, 'vrcx_mutual_friends.json')
+                with open(json_file, 'w', encoding='utf-8') as f:
+                    json.dump(json_output, f, indent=2, ensure_ascii=False)
+                self.log(f"[Step 2/4] Saved friend cache to: {json_file}")
+                
+                self.log(f"[Step 2/4] Collected {mutual_count} mutual connection entries")
+                # Note: actual edges will be ~half this since each connection is counted twice
+                self.update_status("Mutual connections fetched", "Step 2 of 4 Complete", 55)
 
-            if self.stop_requested:
-                self.log("[Process] Stopped by user")
-                self.update_status("Stopped by user", "Cancelled", 0)
-                # Reset state without calling processing_complete since we didn't complete
-                self.processing = False
-                self.stop_requested = False
-                self.root.after(0, lambda: self.generate_btn.config(state='normal'))
+                if self.stop_requested:
+                    self.log("[Process] Stopped by user")
+                    self.update_status("Stopped by user", "Cancelled", 0)
+                    # Reset state without calling processing_complete since we didn't complete
+                    self.processing = False
+                    self.stop_requested = False
+                    self.root.after(0, lambda: self.generate_btn.config(state='normal'))
+                    self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
+                    return
                 self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
                 return
 
-            # Step 3: Build network graph
-            self.update_status("Building network graph...", "Step 3 of 4", 60)
-            self.log("[Step 3/4] Constructing network graph")
+            # Step 3/2: Build network graph (step numbering depends on cached mode)
+            use_cached = self.use_cached_var.get()
+            step_num = "2 of 2" if use_cached else "3 of 4"
+            progress_val = 60 if not use_cached else 60
+            self.update_status("Building network graph...", f"Step {step_num}", progress_val)
+            self.log(f"[Step {step_num}] Constructing network graph")
             
             friends_dict = {}
             for friend_id, friend_info in friends_data.items():
@@ -816,7 +878,9 @@ class VRChatNetworkGUI:
                         visualizer.graph.add_edge(friend_id, mutual_id)
                         edge_count += 1
             
-            self.log(f"[Step 3/4] Built graph with {len(friends_dict)} nodes and {edge_count} edges")
+            use_cached = self.use_cached_var.get()
+            step_num = "2 of 2" if use_cached else "3 of 4"
+            self.log(f"[Step {step_num}] Built graph with {len(friends_dict)} nodes and {edge_count} edges")
             
             # Calculate statistics
             isolated_count = sum(1 for node in visualizer.graph.nodes() if visualizer.graph.degree(node) == 0)
@@ -846,7 +910,10 @@ class VRChatNetworkGUI:
                 top_friends_text = "-"
             
             self.update_statistics(edges=edge_count, isolated=isolated_count, density=density, top_friends=top_friends_text)
-            self.update_status("Network graph built", "Step 3 of 4 Complete", 75)
+            use_cached = self.use_cached_var.get()
+            step_complete = "Step 2 of 2 Complete" if use_cached else "Step 3 of 4 Complete"
+            progress_val = 80 if use_cached else 75
+            self.update_status("Network graph built", step_complete, progress_val)
 
             if self.stop_requested:
                 self.log("[Process] Stopped by user")
@@ -858,9 +925,12 @@ class VRChatNetworkGUI:
                 self.root.after(0, lambda: self.stop_btn.config(state='disabled'))
                 return
 
-            # Step 4: Generate visualization
-            self.update_status("Generating visualization...", "Step 4 of 4", 80)
-            self.log("[Step 4/4] Creating interactive HTML visualization")
+            # Step 4/2: Generate visualization (final step in both modes)
+            use_cached = self.use_cached_var.get()
+            step_num = "2 of 2" if use_cached else "4 of 4"
+            progress_val = 85 if use_cached else 80
+            self.update_status("Generating visualization...", f"Step {step_num}", progress_val)
+            self.log(f"[Step {step_num}] Creating interactive HTML visualization")
             
             # Save visualization in the exe directory
             output_file = os.path.join(self.exe_dir, 'vrchat_friend_network.html')
@@ -878,13 +948,18 @@ class VRChatNetworkGUI:
                 ), resolution=1.5)
                 num_communities = len(set(partition.values()))
                 self.update_statistics(communities=num_communities)
-                self.log(f"[Step 4/4] Detected {num_communities} communities")
+                use_cached = self.use_cached_var.get()
+                step_num = "2 of 2" if use_cached else "4 of 4"
+                self.log(f"[Step {step_num}] Detected {num_communities} communities")
             except:
                 pass
             
             self.output_path = output_file
-            self.log(f"[Step 4/4] Saved to: {output_file}")
-            self.update_status("Visualization complete", "Step 4 of 4 Complete", 95)
+            use_cached = self.use_cached_var.get()
+            step_num = "2 of 2" if use_cached else "4 of 4"
+            self.log(f"[Step {step_num}] Saved to: {output_file}")
+            step_complete = f"Step {step_num} Complete"
+            self.update_status("Visualization complete", step_complete, 95)
 
             # Open in browser if requested
             if self.auto_open_var.get():
