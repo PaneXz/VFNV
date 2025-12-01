@@ -387,8 +387,16 @@ class FriendNetworkVisualizer:
             'num_communities': len(communities)
         }
     
-    def create_visualization(self, output_file: str = 'vrchat_friend_network.html', dark_mode: bool = False):
-        """Create interactive Plotly visualization"""
+    def create_visualization(self, output_file: str = 'vrchat_friend_network.html', dark_mode: bool = False, show_heatmap: bool = True, show_edges: bool = True):
+        """Create interactive Plotly visualization
+        
+        Args:
+            output_file: Path to save the HTML file
+            dark_mode: Use dark theme for visualization
+            show_heatmap: Show background heatmap for communities
+            show_edges: Show connection lines by default (can be toggled in HTML)
+            show_heatmap: Show background heatmap/contour for communities
+        """""
         
         if self.graph.number_of_nodes() == 0:
             print("No friends data to visualize!")
@@ -1323,7 +1331,7 @@ class FriendNetworkVisualizer:
                     # Weight by both connectivity and cohesion - creates intense hotspots
                     blob_intensity.append(intra_connections * cohesion_percent)
             
-            # Create contour/heatmap trace for this community
+            # Create contour/heatmap trace for this community (always create, control visibility via show_heatmap)
             if blob_x and blob_y:
                 # Extract RGB values from community color
                 rgb_match = community_colors_rgb[comm % len(community_colors_rgb)]
@@ -1354,7 +1362,7 @@ class FriendNetworkVisualizer:
                         name=f'Community {comm} background',
                         opacity=0.6,
                         showlegend=False,
-                        visible=True,
+                        visible=show_heatmap,  # Set initial visibility based on parameter
                         xaxis='x',
                         yaxis='y',
                         zauto=True,
@@ -1467,6 +1475,54 @@ body.dark-mode #theme-toggle {{
 #theme-toggle:hover {{
     transform: scale(1.1);
 }}
+#heatmap-toggle {{
+    position: fixed;
+    top: 70px;
+    left: 20px;
+    z-index: 1001;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}}
+body.light-mode #heatmap-toggle {{
+    background: #333;
+    color: white;
+}}
+body.dark-mode #heatmap-toggle {{
+    background: #4CAF50;
+    color: white;
+}}
+#heatmap-toggle:hover {{
+    transform: scale(1.1);
+}}
+#edges-toggle {{
+    position: fixed;
+    top: 120px;
+    left: 20px;
+    z-index: 1001;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}}
+body.light-mode #edges-toggle {{
+    background: #333;
+    color: white;
+}}
+body.dark-mode #edges-toggle {{
+    background: #2196F3;
+    color: white;
+}}
+#edges-toggle:hover {{
+    transform: scale(1.1);
+}}
 #search-container {{
     position: fixed;
     top: 70px;
@@ -1548,6 +1604,8 @@ body.dark-mode #search-status {{
 }}
 </style>
 <button id="theme-toggle">Dark</button>
+<button id="heatmap-toggle">Hide Heatmap</button>
+<button id="edges-toggle">Hide Edges</button>
 <div id="search-container">
     <input type="text" id="friend-search" placeholder="Search for a friend...">
     <div id="search-results"></div>
@@ -1600,6 +1658,83 @@ function applyTheme() {{
     }}
 }}
 
+// Heatmap toggle functionality
+var isHeatmapVisible = {str(show_heatmap).lower()};
+
+function toggleHeatmap() {{
+    isHeatmapVisible = !isHeatmapVisible;
+    applyHeatmap();
+    localStorage.setItem('heatmapVisible', isHeatmapVisible);
+}}
+
+// Edges toggle functionality
+var areEdgesVisible = {str(show_edges).lower()};
+
+function toggleEdges() {{
+    areEdgesVisible = !areEdgesVisible;
+    applyEdges();
+    localStorage.setItem('edgesVisible', areEdgesVisible);
+}}
+
+function applyEdges() {{
+    var myPlot = document.getElementsByClassName('plotly-graph-div')[0];
+    var toggleBtn = document.getElementById('edges-toggle');
+    
+    if (!myPlot || !myPlot.data) return;
+    
+    // Update button text
+    if (toggleBtn) {{
+        toggleBtn.textContent = areEdgesVisible ? 'Hide Edges' : 'Show Edges';
+    }}
+    
+    // Find the edge trace (not highlighted edges)
+    for (var i = 0; i < myPlot.data.length; i++) {{
+        if (myPlot.data[i].name === 'Mutual Friends') {{
+            // When hiding edges, set opacity to 0 (fully transparent)
+            // When showing, restore to default opacity or current selection opacity
+            var targetOpacity = areEdgesVisible ? 0.15 : 0;
+            Plotly.restyle(myPlot, {{'opacity': targetOpacity}}, [i]);
+            break;
+        }}
+    }}
+}}
+
+function applyHeatmap() {{
+    var myPlot = document.getElementsByClassName('plotly-graph-div')[0];
+    var toggleBtn = document.getElementById('heatmap-toggle');
+    
+    if (!myPlot || !myPlot.data) return;
+    
+    // Find all background heatmap traces
+    var updates = {{}};
+    for (var i = 0; i < myPlot.data.length; i++) {{
+        if (myPlot.data[i].name && myPlot.data[i].name.includes('background')) {{
+            if (!updates['visible']) {{
+                updates['visible'] = [];
+            }}
+            updates['visible'][i] = isHeatmapVisible;
+        }}
+    }}
+    
+    // Update button text
+    if (toggleBtn) {{
+        toggleBtn.textContent = isHeatmapVisible ? 'Hide Heatmap' : 'Show Heatmap';
+    }}
+    
+    // Apply visibility changes
+    if (Object.keys(updates).length > 0) {{
+        var indices = [];
+        for (var i = 0; i < myPlot.data.length; i++) {{
+            if (myPlot.data[i].name && myPlot.data[i].name.includes('background')) {{
+                indices.push(i);
+            }}
+        }}
+        if (indices.length > 0) {{
+            Plotly.restyle(myPlot, {{'visible': isHeatmapVisible}}, indices);
+        }}
+    }}
+}}
+
 // Initialize theme from localStorage or default and set up button
 document.addEventListener('DOMContentLoaded', function() {{
     var savedMode = localStorage.getItem('darkMode');
@@ -1607,10 +1742,36 @@ document.addEventListener('DOMContentLoaded', function() {{
         isDarkMode = savedMode === 'true';
     }}
     
-    // Set up button click handler
+    // Set up theme toggle button click handler
     var toggleBtn = document.getElementById('theme-toggle');
     if (toggleBtn) {{
         toggleBtn.addEventListener('click', toggleTheme);
+    }}
+    
+    // Initialize heatmap visibility - use parameter value (localStorage disabled to respect GUI setting)
+    // If you want to remember user's last choice in browser, uncomment the code below:
+    // var savedHeatmap = localStorage.getItem('heatmapVisible');
+    // if (savedHeatmap !== null) {{
+    //     isHeatmapVisible = savedHeatmap === 'true';
+    // }}
+    
+    // Set up heatmap toggle button click handler
+    var heatmapBtn = document.getElementById('heatmap-toggle');
+    if (heatmapBtn) {{
+        heatmapBtn.addEventListener('click', toggleHeatmap);
+    }}
+    
+    // Initialize edges visibility - use parameter value (localStorage disabled to respect GUI setting)
+    // If you want to remember user's last choice in browser, uncomment the code below:
+    // var savedEdges = localStorage.getItem('edgesVisible');
+    // if (savedEdges !== null) {{
+    //     areEdgesVisible = savedEdges === 'true';
+    // }}
+    
+    // Set up edges toggle button click handler
+    var edgesBtn = document.getElementById('edges-toggle');
+    if (edgesBtn) {{
+        edgesBtn.addEventListener('click', toggleEdges);
     }}
     
     // Apply initial theme immediately
@@ -1628,6 +1789,12 @@ document.addEventListener('DOMContentLoaded', function() {{
         
         // Apply theme to plotly
         applyTheme();
+        
+        // Apply heatmap visibility
+        applyHeatmap();
+        
+        // Apply edges visibility
+        applyEdges();
         
         // Find the edge and node traces by their names (since blob traces are added dynamically)
         var edgeTraceIdx = -1;
@@ -1842,17 +2009,19 @@ document.addEventListener('DOMContentLoaded', function() {{
                     break;
                 }
             }
-            // Then update edge and node traces
-            Plotly.restyle(myPlot, {'opacity': 0.03}, [edgeTraceIdx]);
+            // Then update edge and node traces (respect edges visibility setting)
+            var edgeOpacity = areEdgesVisible ? 0.03 : 0;
+            Plotly.restyle(myPlot, {'opacity': edgeOpacity}, [edgeTraceIdx]);
             Plotly.restyle(myPlot, {
                 'marker.opacity': [newNodeOpacity],
                 'marker.line.width': [newBorderWidths],
                 'marker.line.color': [newBorderColors]
             }, [currentNodeTraceIdx]);
         } else {
-            // Highlight trace exists - update all three separately
+            // Highlight trace exists - update all three separately (respect edges visibility setting)
+            var edgeOpacity = areEdgesVisible ? 0.03 : 0;
             Plotly.restyle(myPlot, {
-                'opacity': 0.03
+                'opacity': edgeOpacity
             }, [edgeTraceIdx]);
             Plotly.restyle(myPlot, {
                 'x': [highlightX],
@@ -1949,16 +2118,18 @@ document.addEventListener('DOMContentLoaded', function() {{
                     break;
                 }
             }
-            // Update traces
-            Plotly.restyle(myPlot, {'opacity': 0.03}, [edgeTraceIdx]);
+            // Update traces (respect edges visibility setting)
+            var edgeOpacity = areEdgesVisible ? 0.03 : 0;
+            Plotly.restyle(myPlot, {'opacity': edgeOpacity}, [edgeTraceIdx]);
             Plotly.restyle(myPlot, {
                 'marker.opacity': [newNodeOpacity],
                 'marker.line.width': [newBorderWidths],
                 'marker.line.color': [newBorderColors]
             }, [currentNodeTraceIdx]);
         } else {
-            // Update existing traces
-            Plotly.restyle(myPlot, {'opacity': 0.03}, [edgeTraceIdx]);
+            // Update existing traces (respect edges visibility setting)
+            var edgeOpacity = areEdgesVisible ? 0.03 : 0;
+            Plotly.restyle(myPlot, {'opacity': edgeOpacity}, [edgeTraceIdx]);
             Plotly.restyle(myPlot, {
                 'x': [highlightX],
                 'y': [highlightY]
@@ -1983,8 +2154,9 @@ document.addEventListener('DOMContentLoaded', function() {{
     // Continue with remaining functions...
     
     function resetSelection() {
-        // Restore edge opacity
-        Plotly.restyle(myPlot, {'opacity': [0.15]}, [edgeTraceIdx]);
+        // Restore edge opacity (respect edges visibility setting)
+        var edgeOpacity = areEdgesVisible ? 0.15 : 0;
+        Plotly.restyle(myPlot, {'opacity': [edgeOpacity]}, [edgeTraceIdx]);
         
         // Remove highlight trace if it exists
         var highlightTraceIdx = -1;
@@ -2190,8 +2362,8 @@ document.addEventListener('DOMContentLoaded', function() {{
         # Statistics summary
         num_communities_detected = len(set(node_primary_community.values())) if node_primary_community else 0
         if num_communities_detected > 0:
-            print(f"\n📊 Network Analysis:")
-            print(f"  • Detected {num_communities_detected} friend communities/groups")
+            print(f"\nNetwork Analysis:")
+            print(f"  - Detected {num_communities_detected} friend communities/groups")
             
             # Find most connected friends
             node_degrees = [(node, self.graph.degree(node)) for node in self.graph.nodes()]
@@ -2201,7 +2373,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             for user_id, connections in top_connected:
                 name = self.graph.nodes[user_id].get('name', user_id)
                 cross = node_cross_connectivity.get(user_id, 0)
-                print(f"    • {name}: {connections} mutual connections ({cross:.0%} cross-community)")
+                print(f"    - {name}: {connections} mutual connections ({cross:.0%} cross-community)")
         
         return output_file
 
@@ -2330,6 +2502,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
 
 
